@@ -14,12 +14,23 @@ from tensorflow import keras
 fashion_minst = keras.datasets.fashion_mnist
 (x_train_all, y_train_all), (x_test, y_test) = fashion_minst.load_data()
 
-#Normalization
-x_train_all = x_train_all / 255.0
-x_test = x_test / 255.0
-
 x_valid, x_train = x_train_all[:5000], x_train_all[5000:]
 y_valid, y_train = y_train_all[:5000], y_train_all[5000:]
+
+'''
+Normalization
+convert np.int into float32
+x_train:[None, 28, 28] -> [None, 784] since fit_transform need 2-D parameter
+fit_transform vs transform: 
+    the former can record the mean and variance of the train data
+'''
+scaler = StandardScaler()
+x_train_scaled = scaler.fit_transform(
+        x_train.astype(np.float32).reshape(-1, 1)).reshape(-1, 28, 28)
+x_valid_scaled = scaler.transform(
+        x_valid.astype(np.float32).reshape(-1, 1)).reshape(-1, 28, 28)
+x_test_scaled = scaler.transform(
+        x_test.astype(np.float32).reshape(-1, 1)).reshape(-1, 28, 28)
 
 #%%
 def show_single_image(img_arr):
@@ -66,14 +77,17 @@ model.compile(loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
 #%%
-history = model.fit(x_train, y_train, epochs=10,
-                    validation_data=(x_valid, y_valid))
+history = model.fit(x_train_scaled, y_train, epochs=10,
+                    validation_data=(x_valid_scaled, y_valid))
 
 #%%
 def plot_learning_curves(history):
     pd.DataFrame(history.history).plot(figsize=(8, 5))
-    plt.gird(True)
+    plt.grid(True)
     plt.gca().set_ylim(0, 1)
     plt.show()
 
 plot_learning_curves(history)
+
+#%%
+model.evaluate(x_test_scaled, y_test)
